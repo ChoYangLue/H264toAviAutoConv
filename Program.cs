@@ -24,6 +24,7 @@ namespace H264toAviConvCLI
         private static readonly string OK_BUTTON_ID = "1";
         private static readonly string CONV_DIALOG_OK_BUTTON_ID = "2";
         private static readonly string DIRECTORY_LIST_ID = "14145";
+        private static readonly string CONVERT_TEXT_ID = "1010";
 
         static void Main(string[] args)
         {
@@ -31,12 +32,12 @@ namespace H264toAviConvCLI
             AutomationElement subForm;
 
             Process.Start(CONV_EXE_PATH);
+            Thread.Sleep(DEFAULT_WAIT_TIME);
             Process process = SearchProcessByWindowTitle(WINDOW_TITLE);
 
             // 起動します
             Thread.Sleep(DEFAULT_WAIT_TIME);
             mainForm = AutomationElement.FromHandle(process.MainWindowHandle);
-
 
             // Saveボタン押します
             ClickButtonById(mainForm, SAVING_BUTTON_ID);
@@ -44,6 +45,8 @@ namespace H264toAviConvCLI
             var btnClear5 = FindElementById(mainForm, DIRECTORY_LIST_ID);
             Keyin(true, btnClear5, "{Down}");
             Keyin(true, btnClear5, "{Down}");
+            Keyin(true, btnClear5, "{Down}");
+            Keyin(true, btnClear5, "{Right}");
             Keyin(true, btnClear5, "{Down}");
             Keyin(true, btnClear5, "{ENTER}"); // EnterでMainFormに戻る
 
@@ -58,6 +61,10 @@ namespace H264toAviConvCLI
             var btnClear3 = FindElementById(subForm, DIRECTORY_LIST_ID);
             Keyin(true, btnClear3, "{Down}");
             Keyin(true, btnClear3, "{Down}");
+            Keyin(true, btnClear3, "{Down}");
+            Keyin(true, btnClear3, "{Right}");
+            Keyin(true, btnClear3, "{Down}");
+            Keyin(true, btnClear3, "{Down}");
 
             //Thread.Sleep(DEFAULT_WAIT_TIME);
             ClickButtonById(subForm, OK_BUTTON_ID);
@@ -66,7 +73,14 @@ namespace H264toAviConvCLI
             ClickButtonById(mainForm, ALL_BUTTON_ID);
             ClickButtonById(mainForm, CONVERT_BUTTON_ID);
 
-            Thread.Sleep(DEFAULT_WAIT_TIME + 3000);
+            while (true)
+            {
+                string sere = FindElementById(mainForm, CONVERT_TEXT_ID).Current.Name;
+                Console.WriteLine("converting..." + sere);
+
+                if (IsAllConvertEnd(sere)) break;
+                Thread.Sleep(1000);
+            }
 
             ClickButtonById(mainForm, CONV_DIALOG_OK_BUTTON_ID);
 
@@ -75,6 +89,25 @@ namespace H264toAviConvCLI
             Console.ReadLine();
 
             process.CloseMainWindow();
+        }
+
+        static bool IsAllConvertEnd(string output_txt)
+        {
+            string[] arr = output_txt.Split(' ');
+            if (arr.Length != 3) return false;
+
+            string total = arr[0].Substring(6);
+            string susceed = arr[1].Substring(8);
+            string failure = arr[2].Substring(8);
+
+            //Console.WriteLine(total +"="+ susceed +"+"+ failure);
+
+            int i = int.Parse(total);
+            int i1 = int.Parse(susceed);
+            int i2 = int.Parse(failure);
+
+            if (i == i1+i2) return true;
+            return false;
         }
 
         //指定したタイトルの文字列が含まれているプロセスを取得
@@ -111,24 +144,6 @@ namespace H264toAviConvCLI
                 TreeScope.Element | TreeScope.Descendants,
                 new PropertyCondition(AutomationElement.AutomationIdProperty, automationId))
                 .Cast<AutomationElement>();
-        }
-
-        // 指定したName属性に一致するAutomationElementをすべて返します
-        private static IEnumerable<AutomationElement> FindAllElementsByName(AutomationElement rootElement, string name)
-        {
-            return rootElement.FindAll(
-                TreeScope.Element | TreeScope.Descendants,
-                new PropertyCondition(AutomationElement.NameProperty, name))
-                .Cast<AutomationElement>();
-        }
-
-        // 指定したName属性に一致するボタン要素をすべて返します
-        private static IEnumerable<AutomationElement> FindButtonsByName(AutomationElement rootElement, string name)
-        {
-            const string BUTTON_CLASS_NAME = "Button";
-            return from x in FindAllElementsByName(rootElement, name)
-                   where x.Current.ClassName == BUTTON_CLASS_NAME
-                   select x;
         }
 
         public static void Keyin(bool focus, AutomationElement element, string text)
