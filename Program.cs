@@ -11,7 +11,7 @@ namespace H264toAviConvCLI
 {
     class Program
     {
-        private static readonly string FFMPEG_EXE_PATH = Directory.GetCurrentDirectory() + @"\Lib\ffmpeg\";
+        private static readonly string FFMPEG_EXE_PATH = Directory.GetCurrentDirectory() + @"\Lib\ffmpeg\ffmpeg.exe";
         private static readonly string CONV_EXE_PATH = Directory.GetCurrentDirectory() + @"\Lib\H264_To_AVI_Convertor\Converter.exe";
         private static readonly string WINDOW_TITLE = "H264 to AVI convertor v3.1.5";
         private static readonly int DEFAULT_WAIT_TIME = 300;
@@ -29,46 +29,17 @@ namespace H264toAviConvCLI
         static void Main(string[] args)
         {
             AutomationElement mainForm;
-            AutomationElement subForm;
 
+            // 起動します
             Process.Start(CONV_EXE_PATH);
             Thread.Sleep(DEFAULT_WAIT_TIME);
             Process process = SearchProcessByWindowTitle(WINDOW_TITLE);
 
-            // 起動します
             Thread.Sleep(DEFAULT_WAIT_TIME);
             mainForm = AutomationElement.FromHandle(process.MainWindowHandle);
 
-            // Saveボタン押します
-            ClickButtonById(mainForm, SAVING_BUTTON_ID);
-
-            var btnClear5 = FindElementById(mainForm, DIRECTORY_LIST_ID);
-            Keyin(true, btnClear5, "{Down}");
-            Keyin(true, btnClear5, "{Down}");
-            Keyin(true, btnClear5, "{Down}");
-            Keyin(true, btnClear5, "{Right}");
-            Keyin(true, btnClear5, "{Down}");
-            Keyin(true, btnClear5, "{ENTER}"); // EnterでMainFormに戻る
-
-
-            // Sourceボタン押します
-            ClickButtonById(mainForm, SOURCE_BUTTON_ID);
-
-            Thread.Sleep(DEFAULT_WAIT_TIME);
-            Process process1 = SearchProcessByWindowTitle("フォルダーの参照");
-            subForm = AutomationElement.FromHandle(process1.MainWindowHandle);
-
-            var btnClear3 = FindElementById(subForm, DIRECTORY_LIST_ID);
-            Keyin(true, btnClear3, "{Down}");
-            Keyin(true, btnClear3, "{Down}");
-            Keyin(true, btnClear3, "{Down}");
-            Keyin(true, btnClear3, "{Right}");
-            Keyin(true, btnClear3, "{Down}");
-            Keyin(true, btnClear3, "{Down}");
-
-            //Thread.Sleep(DEFAULT_WAIT_TIME);
-            ClickButtonById(subForm, OK_BUTTON_ID);
-
+            SettingSource(mainForm);
+            SettingSave(mainForm);
 
             ClickButtonById(mainForm, ALL_BUTTON_ID);
             ClickButtonById(mainForm, CONVERT_BUTTON_ID);
@@ -84,11 +55,79 @@ namespace H264toAviConvCLI
 
             ClickButtonById(mainForm, CONV_DIALOG_OK_BUTTON_ID);
 
+            process.CloseMainWindow();
+            
+
+            ConvertFormatInDir(@"D:\Desktop\convert_avi", @"D:\Desktop\convert_webm");
 
             Console.WriteLine("すべて完了しました");
             Console.ReadLine();
 
-            process.CloseMainWindow();
+        }
+
+        static void SettingSource(AutomationElement mainForm)
+        {
+            AutomationElement subForm;
+
+            // Sourceボタン押します
+            ClickButtonById(mainForm, SOURCE_BUTTON_ID);
+
+            Thread.Sleep(DEFAULT_WAIT_TIME);
+            Process process1 = SearchProcessByWindowTitle("フォルダーの参照");
+            subForm = AutomationElement.FromHandle(process1.MainWindowHandle);
+
+            var btnClear3 = FindElementById(subForm, DIRECTORY_LIST_ID);
+            Keyin(true, btnClear3, "{Down}");
+            Keyin(true, btnClear3, "{Down}");
+            Keyin(true, btnClear3, "{Down}");
+            Keyin(true, btnClear3, "{Right}");
+            Keyin(true, btnClear3, "{Down}");
+            Keyin(true, btnClear3, "{Down}");
+            Keyin(true, btnClear3, "{Down}");
+
+            //Thread.Sleep(DEFAULT_WAIT_TIME);
+            ClickButtonById(subForm, OK_BUTTON_ID);
+        }
+
+        static void SettingSave(AutomationElement mainForm)
+        {
+            // Saveボタン押します
+            ClickButtonById(mainForm, SAVING_BUTTON_ID);
+
+            var btnClear5 = FindElementById(mainForm, DIRECTORY_LIST_ID);
+            Keyin(true, btnClear5, "{Down}");
+            Keyin(true, btnClear5, "{Down}");
+            Keyin(true, btnClear5, "{Down}");
+            Keyin(true, btnClear5, "{Right}");
+            Keyin(true, btnClear5, "{Down}");
+            Keyin(true, btnClear5, "{ENTER}"); // EnterでMainFormに戻る
+        }
+
+        static void ffmpegOutPut(string txt)
+        {
+            Console.WriteLine(txt);
+        }
+
+        static void ConvertFormatInDir(string in_path, string out_path)
+        {
+            string conv_type = "webm";
+
+            var com1 = new LoadExecJob();
+            com1.SetOutputFunc(ffmpegOutPut);
+
+            string[] avi_files = Directory.GetFiles(in_path, "*.avi");
+            foreach (string name in avi_files)
+            {
+                Console.WriteLine(name);
+                if (conv_type == "hevc")
+                {
+                    com1.RunFFmpegAndJoin(FFMPEG_EXE_PATH, @"-i " + name + @" -vcodec hevc " + out_path + @"\" + Path.GetFileNameWithoutExtension(name) + ".mp4");
+                } 
+                else if (conv_type == "webm")
+                {
+                    com1.RunFFmpegAndJoin(FFMPEG_EXE_PATH, @"-i " + name + @" -strict -2 " + out_path + @"\" + Path.GetFileNameWithoutExtension(name) + ".webm");
+                }
+            }
         }
 
         static bool IsAllConvertEnd(string output_txt)
