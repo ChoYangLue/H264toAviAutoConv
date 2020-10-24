@@ -61,8 +61,7 @@ namespace H264toAviConvCLI
             ConvertFormatInDir(@"D:\Desktop\convert_avi", @"D:\Desktop\convert_webm");
 
             Console.WriteLine("すべて完了しました");
-            Console.ReadLine();
-
+            //Console.ReadLine();
         }
 
         static void SettingSource(AutomationElement mainForm)
